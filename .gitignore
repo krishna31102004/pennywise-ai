@@ -1,0 +1,48 @@
+# --- Node / package managers ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+*.log
+*.log.*
+
+# pnpm store (sometimes created locally)
+.pnpm-debug.log
+
+# --- Next.js / Turbopack / build output ---
+.next/
+.next/cache/
+out/
+dist/
+.turbo/
+.eslintcache
+*.tsbuildinfo
+
+# --- Env files (never commit secrets) ---
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# --- Prisma local artifacts (keep schema & migrations) ---
+/prisma/*.db
+/prisma/*.db-journal
+/prisma/*.sqlite
+/prisma/*.sqlite-journal
+
+# --- Tests / coverage / tools ---
+coverage/
+.vitest/
+playwright-report/
+test-results/
+.playwright-cache/
+
+# --- OS / editors ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# --- Vercel local metadata ---
+.vercel

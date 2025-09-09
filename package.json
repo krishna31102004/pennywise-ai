@@ -1,0 +1,43 @@
+{
+  "name": "finance-ai-starter",
+  "private": true,
+  "version": "0.4.4",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "lint": "next lint",
+    "seed": "tsx scripts/seed.ts",
+    "apply:rules": "tsx scripts/apply-demo-rules.ts",
+    "ai:check": "node -e \"console.log('AI flags:', process.env.AI_AUTOCAT_ENABLED, process.env.AI_INSIGHTS_ENABLED, process.env.AI_ASK_ENABLED)\"",
+    "ai:backfill": "tsx scripts/backfill-ai-tips.ts"
+  },
+  "dependencies": {
+    "react-plaid-link": "4.1.1",
+    "@prisma/client": "5.18.0",
+    "date-fns": "3.6.0",
+    "next": "15.0.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "recharts": "3.1.2",
+    "zod": "3.23.8",
+    "plaid": "23.0.0",
+    "openai": "^4.55.0",
+    "framer-motion": "^11.2.10",
+    "lucide-react": "^0.446.0",
+    "clsx": "^2.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.7.4",
+    "@types/react": "18.3.8",
+    "eslint": "9.10.0",
+    "eslint-config-next": "15.0.0",
+    "prisma": "5.18.0",
+    "tsx": "4.19.2",
+    "typescript": "5.6.2",
+    "tailwindcss": "3.4.10",
+    "postcss": "8.4.47",
+    "autoprefixer": "10.4.20"
+  }
+}
