@@ -1,0 +1,32 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+      - run: pnpm i
+      # Prisma checks that don't hit the DB
+      - run: npx prisma format --schema=prisma/schema.prisma
+      - run: npx prisma validate --schema=prisma/schema.prisma
+      # Typecheck & lint
+      - run: pnpm run typecheck || pnpm tsc --noEmit
+      - run: pnpm run lint || pnpm eslint . --max-warnings=0
+      # Ensure app still builds (no runtime envs required for static compile)
+      - run: pnpm build
+        env:
+          # Safe defaults so build doesn't choke on missing envs
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+          AI_AUTOCAT_ENABLED: 'false'
+          AI_INSIGHTS_ENABLED: 'false'
+          AI_ASK_ENABLED: 'false'
