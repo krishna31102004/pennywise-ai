@@ -61,60 +61,60 @@ middleware.ts
 
 1. **Clone & install**
 
-```bash
-pnpm i
-```
+   ```bash
+   pnpm i
+   ```
 
 2. **Configure env**
    Create `.env` from the example below and fill in real values (Plaid sandbox keys, Neon URLs, a 32-byte `ENCRYPTION_KEY`).
 
-```bash
-# ---------- Database ----------
-DATABASE_URL=postgresql://USER:PASSWORD@HOST/neondb?sslmode=require&pgbouncer=true&connect_timeout=10
-DIRECT_URL=postgresql://USER:PASSWORD@HOST/neondb?sslmode=require
+   ```bash
+   # ---------- Database ----------
+   DATABASE_URL=postgresql://USER:PASSWORD@HOST/neondb?sslmode=require&pgbouncer=true&connect_timeout=10
+   DIRECT_URL=postgresql://USER:PASSWORD@HOST/neondb?sslmode=require
 
-# ---------- Plaid (Sandbox) ----------
-PLAID_ENV=sandbox
-PLAID_CLIENT_ID=your_plaid_client_id
-PLAID_SECRET=your_plaid_sandbox_secret
-PLAID_PRODUCTS=transactions,balances
-PLAID_COUNTRY_CODES=US
-# Optional shared secret you add to your webhook url as ?secret=... (defense-in-depth)
-PLAID_WEBHOOK_SECRET=generate-a-strong-random-string
+   # ---------- Plaid (Sandbox) ----------
+   PLAID_ENV=sandbox
+   PLAID_CLIENT_ID=your_plaid_client_id
+   PLAID_SECRET=your_plaid_sandbox_secret
+   PLAID_PRODUCTS=transactions,balances
+   PLAID_COUNTRY_CODES=US
+   # Optional shared secret you add to your webhook url as ?secret=... (defense-in-depth)
+   PLAID_WEBHOOK_SECRET=generate-a-strong-random-string
 
-# ---------- App ----------
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+   # ---------- App ----------
+   NEXT_PUBLIC_APP_URL=http://localhost:3000
 
-# ---------- AI ----------
-OPENAI_API_KEY=sk-xxxx
-AI_AUTOCAT_ENABLED=true
-AI_INSIGHTS_ENABLED=true
-AI_ASK_ENABLED=true
+   # ---------- AI ----------
+   OPENAI_API_KEY=sk-xxxx
+   AI_AUTOCAT_ENABLED=true
+   AI_INSIGHTS_ENABLED=true
+   AI_ASK_ENABLED=true
 
-# ---------- Crypto (32 bytes; base64 or hex) ----------
-ENCRYPTION_KEY=replace-with-32-byte-secret
-```
+   # ---------- Crypto (32 bytes; base64 or hex) ----------
+   ENCRYPTION_KEY=replace-with-32-byte-secret
+   ```
 
 3. **Migrate & generate**
 
-```bash
-pnpm prisma migrate deploy
-pnpm prisma generate
-```
+   ```bash
+   pnpm prisma migrate deploy
+   pnpm prisma generate
+   ```
 
 4. **Seed 6 months of demo data (optional per-user)**
 
-```bash
-pnpm run seed
-```
+   ```bash
+   pnpm run seed
+   ```
 
 5. **Run**
 
-```bash
-pnpm dev
-```
+   ```bash
+   pnpm dev
+   ```
 
-Open `http://localhost:3000`. On first visit you’ll see the **“Connect a bank (Sandbox)”** onboarding. Link a sandbox bank or load sample data.
+   Open `http://localhost:3000`. On first visit you’ll see the **“Connect a bank (Sandbox)”** onboarding. Link a sandbox bank **or use the “Load sample data” button** on the dashboard to populate charts for your session.
 
 ---
 
@@ -173,13 +173,13 @@ Open `http://localhost:3000`. On first visit you’ll see the **“Connect a ban
 ## 🧰 Scripts
 
 ```bash
-pnpm dev                  # start dev server
-pnpm build                # production build
-pnpm start                # run production build locally
-pnpm prisma studio        # open Prisma Studio (CRUD UI)
-pnpm prisma migrate dev   # create & apply a new migration
-pnpm prisma migrate deploy# apply existing migrations (CI/Vercel)
-pnpm run seed             # idempotent seed (6 months)
+pnpm dev                   # start dev server
+pnpm build                 # production build
+pnpm start                 # run production build locally
+pnpm prisma studio         # open Prisma Studio (CRUD UI)
+pnpm prisma migrate dev    # create & apply a new migration
+pnpm prisma migrate deploy # apply existing migrations (CI/Vercel)
+pnpm run seed              # idempotent seed (6 months)
 ```
 
 ---
@@ -209,12 +209,33 @@ pnpm run seed             # idempotent seed (6 months)
 
 **First-visit sanity checks**
 
-* Fresh browser => onboarding panel (no global data).
-* Link sandbox => dashboard fills after refresh.
+* Fresh browser ⇒ onboarding panel (no global data).
+* Link sandbox ⇒ dashboard fills after refresh.
 * Unlink:
 
   * soft → data hidden from totals by default
   * hard → accounts/txns deleted; charts update immediately
+
+---
+
+## 🔔 Optional: Webhooks (Auto-Refresh)
+
+Webhooks are **not required** for the app to work, but they add auto-sync.
+
+1. Add envs:
+
+   ```
+   NEXT_PUBLIC_APP_URL=https://<your-vercel-domain>
+   PLAID_WEBHOOK_SECRET=<strong random string>
+   ```
+2. In link-token creation (server), set:
+
+   ```
+   webhook = `${process.env.NEXT_PUBLIC_APP_URL}/api/plaid/webhook?secret=${process.env.PLAID_WEBHOOK_SECRET}`
+   ```
+3. Deploy and **re-link** a sandbox bank so the Item adopts the webhook.
+4. Test from Plaid Dashboard → “Send test webhook (Transactions)”.
+   Your app should accept the POST and trigger `/jobs/refresh` automatically.
 
 ---
 
@@ -234,7 +255,7 @@ pnpm run seed             # idempotent seed (6 months)
 ## 🔒 Security Notes
 
 * `ENCRYPTION_KEY` is required to encrypt Plaid access tokens at rest.
-* `PLAID_WEBHOOK_SECRET` is a shared secret you add to your webhook URL as `?secret=...` and verify in the route (defense-in-depth). Also implement Plaid’s signature verification when webhooks are enabled.
+* `PLAID_WEBHOOK_SECRET` is a shared secret you add to your webhook URL as `?secret=...` and verify in the route (defense-in-depth). Consider Plaid’s signature verification for production.
 * Sensitive envs are never exposed to the client; only `NEXT_PUBLIC_*` is safe to expose.
 
 ---
