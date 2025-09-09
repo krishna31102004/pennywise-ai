@@ -3,6 +3,7 @@ import { requireUser } from '@/lib/user';
 import Card from '@/components/ui/Card';
 import Chip from '@/components/ui/Chip';
 import PlaidLinkButton from '@/components/PlaidLinkButton';
+import LoadDemoButton from '@/components/LoadDemoButton';
 export const dynamic = 'force-dynamic';
 
 export default async function TransactionsPage(props: any) {
@@ -42,7 +43,7 @@ export default async function TransactionsPage(props: any) {
           <p className="text-sm text-subtext mb-3">You won’t see anyone else’s data. Link a sandbox account to populate your dashboard.</p>
           <div className="flex gap-3">
             <PlaidLinkButton />
-            <form action="/api/demo/seed" method="POST"><button className="btn btn-ghost" type="submit">Load sample data</button></form>
+            <LoadDemoButton />
           </div>
         </div>
       )}

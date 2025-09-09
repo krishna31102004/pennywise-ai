@@ -1,30 +1,29 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { NextRequest, NextResponse } from 'next/server';
 import { requireUser } from '@/lib/user';
-import { encrypt } from '@/lib/crypto';
+import { seedDemoForUser } from '@/lib/seeding';
+import { revalidatePath } from 'next/cache';
 
-function addDays(d: Date, n: number) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+export const runtime = 'nodejs';
 
-export async function POST() {
-  const user = await requireUser();
-  // idempotent: ensure a Demo Bank connection exists
-  const existing = await prisma.connection.findFirst({ where: { userId: user.id, institution: 'Demo Bank' } });
-  if (existing) return NextResponse.json({ ok: true, already: true });
-
-  const conn = await prisma.connection.create({
-    data: { userId: user.id, itemId: `demo-${user.id}`, institution: 'Demo Bank', accessTokenEnc: encrypt('demo'), scopes: ['balances','transactions'], status: 'active' }
-  });
-  const acc = await prisma.account.create({
-    data: { connectionId: conn.id, accountId: `demo-${user.id}-checking`, name: 'Checking', type: 'depository', subtype: 'checking', current: '3500', available: '3400', isoCurrency: 'USD' }
-  });
-  const today = new Date();
-  const start = addDays(today, -45);
-  for (let d = new Date(start), i = 0; d <= today; d = addDays(d, 1), i++) {
-    if (Math.random() < 0.5) {
-      const amt = (5 + Math.random() * 60).toFixed(2);
-      await prisma.transaction.create({ data: { accountId: acc.id, plaidTxnId: `demo-${user.id}-${i}`, name: 'Merchant', merchant: 'CafeX', amount: amt, isoCurrency: 'USD', datePosted: d, pending: false, hashDedupe: `${amt}|CafeX|${d.toISOString().slice(0,10)}` } });
-    }
+export async function POST(req: NextRequest) {
+  try {
+    if (req.method !== 'POST') return new NextResponse('Method Not Allowed', { status: 405, headers: { Allow: 'POST' } });
+    const user = await requireUser();
+    const existing = await seedDemoForUser(user.id);
+    try {
+      revalidatePath('/dashboard');
+      revalidatePath('/transactions');
+      revalidatePath('/accounts');
+      revalidatePath('/insights');
+    } catch {}
+    // Structured log
+    console.log(JSON.stringify({ action: 'SEED_DEMO', userId: user.id, createdTxns: existing.txns, createdAccounts: existing.accounts }));
+    return NextResponse.json({ ok: true, seeded: true });
+  } catch (e: any) {
+    return NextResponse.json({ ok: false, error: String(e?.message || e) }, { status: 500 });
   }
-  return NextResponse.json({ ok: true });
 }
 
+export async function GET() {
+  return new NextResponse('Method Not Allowed', { status: 405, headers: { Allow: 'POST' } });
+}

@@ -4,6 +4,8 @@ import { requireUser } from '@/lib/user';
 import { prisma } from '@/lib/prisma';
 import { decrypt } from '@/lib/crypto';
 
+export const runtime = 'nodejs';
+
 export async function POST(req: Request) {
   const plaid = getPlaidClient();
   const user = await requireUser();
