@@ -10,7 +10,7 @@ import { writeInsights } from '@/lib/ai-insights';
 
 export const runtime = 'nodejs';
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
   const start = Date.now();
   let refreshedTxns = 0;
   let refreshedAccounts = 0;
@@ -18,7 +18,13 @@ export async function GET(_req: NextRequest) {
 
   try {
     // 1) Pull connections & optionally fetch Plaid txns
-    const current = await requireUser();
+    const url = new URL(req.url);
+    const forcedUserId = url.searchParams.get('userId');
+    const internalKey = req.headers.get('x-internal-key');
+    const allowImpersonate = Boolean(forcedUserId && internalKey && internalKey === process.env.PLAID_WEBHOOK_SECRET);
+    const current = allowImpersonate
+      ? (await prisma.user.findUnique({ where: { id: forcedUserId! } }))!
+      : await requireUser();
     const connections = await prisma.connection.findMany({ where: { userId: current.id, status: 'active', revokedAt: null } });
     const plaidConfigured = Boolean(process.env.PLAID_CLIENT_ID && process.env.PLAID_SECRET);
     const plaid = plaidConfigured ? getPlaidClient() : null;
