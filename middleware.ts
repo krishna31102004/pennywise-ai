@@ -13,7 +13,7 @@ export function middleware(req: NextRequest) {
     res.cookies.set('pw_anid', id, {
       httpOnly: true,
       sameSite: 'lax',
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
       path: '/',
       maxAge: 60 * 60 * 24 * 365,
     });
@@ -22,6 +22,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/plaid/webhook).*)'],
 };
-

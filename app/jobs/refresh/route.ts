@@ -3,17 +3,12 @@ import { prisma } from '@/lib/prisma';
 import { getPlaidClient } from '@/lib/plaid';
 import { decrypt } from '@/lib/crypto';
 import { recomputeInsights } from '@/lib/insights';
+import { requireUser } from '@/lib/user';
 import { aiEnabled } from '@/lib/ai';
 import { categorizeBatch } from '@/lib/ai-categorize';
 import { writeInsights } from '@/lib/ai-insights';
 
 export const runtime = 'nodejs';
-
-async function getOrCreateUser() {
-  const first = await prisma.user.findFirst();
-  if (first) return first;
-  return prisma.user.upsert({ where: { anonId: 'demo' }, update: {}, create: { anonId: 'demo' } });
-}
 
 export async function GET(_req: NextRequest) {
   const start = Date.now();
@@ -23,7 +18,8 @@ export async function GET(_req: NextRequest) {
 
   try {
     // 1) Pull connections & optionally fetch Plaid txns
-    const connections = await prisma.connection.findMany({ where: { status: 'active' } });
+    const current = await requireUser();
+    const connections = await prisma.connection.findMany({ where: { userId: current.id, status: 'active', revokedAt: null } });
     const plaidConfigured = Boolean(process.env.PLAID_CLIENT_ID && process.env.PLAID_SECRET);
     const plaid = plaidConfigured ? getPlaidClient() : null;
 
@@ -81,8 +77,7 @@ export async function GET(_req: NextRequest) {
     }
 
     // 2) Recompute KPIs locally over the last 30 days
-    const anyUser = await getOrCreateUser();
-    const insights = await recomputeInsights(anyUser.id);
+    const insights = await recomputeInsights(current.id);
 
     // 3) Optional AI auto-categorization (limit batch for cost control)
     let autoCat = { applied: 0, suggestedRules: 0 };
@@ -102,13 +97,13 @@ export async function GET(_req: NextRequest) {
     // Run insights unless explicitly disabled; writeInsights will fall back
     // to heuristic tips when OPENAI_API_KEY is not set.
     if (process.env.AI_INSIGHTS_ENABLED !== 'false') {
-      aiTips = await writeInsights(anyUser.id, insights);
+      aiTips = await writeInsights(current.id, insights);
     }
 
     // 5) Audit log
     await prisma.auditLog.create({
       data: {
-        userId: anyUser.id,
+        userId: current.id,
         action: 'JOB_REFRESH',
         target: 'all',
         meta: { refreshedTxns, refreshedAccounts, tookMs: Date.now() - start, note, autoCat, aiTips },
